@@ -3,6 +3,7 @@
 // that can be found in the LICENSE file.
 
 #include "internal.hh"
+#include <iterator>
 
 using namespace std;
 
@@ -41,10 +42,14 @@ expr::evaluate(expr_context *ctx, const std::initializer_list<taddr> &arguments)
         // Create the initial stack.  arguments are in reverse order
         // (that is, element 0 is TOS), so reverse it.
         stack.reserve(arguments.size());
-        for (const taddr *elt = arguments.end() - 1;
+#if _MSC_VER
+        for (auto it = rbegin(arguments); it != rend(arguments); ++it)
+            stack.push_back(*it);
+#else
+        for ( const taddr *elt = arguments.end() - 1;
              elt >= arguments.begin(); elt--)
                 stack.push_back(*elt);
-
+#endif
         // Create a subsection for just this expression so we can
         // easily detect the end (including premature end).
         auto cusec = cu->data();
@@ -82,16 +87,12 @@ expr::evaluate(expr_context *ctx, const std::initializer_list<taddr> &arguments)
                 } tmp1, tmp2, tmp3;
                 static_assert(sizeof(tmp1) == sizeof(taddr), "taddr is not 64 bits");
 
-                // Tell GCC to warn us about missing switch cases,
-                // even though we have a default case.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic warning "-Wswitch-enum"
                 DW_OP op = (DW_OP)cur.fixed<ubyte>();
                 switch (op) {
                         // 2.5.1.1 Literal encodings
-                case DW_OP::lit0...DW_OP::lit31:
+                /*case DW_OP::lit0...DW_OP::lit31:
                         stack.push_back((unsigned)op - (unsigned)DW_OP::lit0);
-                        break;
+                        break;*/
                 case DW_OP::addr:
                         stack.push_back(cur.address());
                         break;
@@ -128,13 +129,15 @@ expr::evaluate(expr_context *ctx, const std::initializer_list<taddr> &arguments)
 
                         // 2.5.1.2 Register based addressing
                 case DW_OP::fbreg:
-                        // XXX
-                        throw runtime_error("DW_OP_fbreg not implemented");
-                case DW_OP::breg0...DW_OP::breg31:
+                        tmp1.s = cur.sleb128();
+                        stack.push_back(tmp1.s);
+                        break;
+                        //throw runtime_error("DW_OP_fbreg not implemented");
+                /*case DW_OP::breg0...DW_OP::breg31:
                         tmp1.u = (unsigned)op - (unsigned)DW_OP::breg0;
                         tmp2.s = cur.sleb128();
                         stack.push_back((int64_t)ctx->reg(tmp1.u) + tmp2.s);
-                        break;
+                        break;*/
                 case DW_OP::bregx:
                         tmp1.u = cur.uleb128();
                         tmp2.s = cur.sleb128();
@@ -365,10 +368,10 @@ expr::evaluate(expr_context *ctx, const std::initializer_list<taddr> &arguments)
                         break;
 
                         // 2.6.1.1.2 Register location descriptions
-                case DW_OP::reg0...DW_OP::reg31:
+                /*case DW_OP::reg0...DW_OP::reg31:
                         result.location_type = expr_result::type::reg;
                         result.value = (unsigned)op - (unsigned)DW_OP::reg0;
-                        break;
+                        break;*/
                 case DW_OP::regx:
                         result.location_type = expr_result::type::reg;
                         result.value = cur.uleb128();
@@ -393,15 +396,35 @@ expr::evaluate(expr_context *ctx, const std::initializer_list<taddr> &arguments)
                         // XXX
                         throw runtime_error(to_string(op) + " not implemented");
 
-                case DW_OP::lo_user...DW_OP::hi_user:
+                /*case DW_OP::lo_user...DW_OP::hi_user:
                         // XXX We could let the context evaluate this,
                         // but it would need access to the cursor.
                         throw expr_error("unknown user op " + to_string(op));
+                    */
 
                 default:
+                    if (op >= DW_OP::lit0 && op <= DW_OP::lit31)
+                    {
+                        stack.push_back((unsigned)op - (unsigned)DW_OP::lit0);
+                    }
+                    else if (op >= DW_OP::lo_user && op <= DW_OP::hi_user)
+                    {
+                        throw expr_error("unknown user op " + to_string(op));
+                    }
+                    else if (op >= DW_OP::reg0 && op <= DW_OP::reg31)
+                    {
+                        result.location_type = expr_result::type::reg;
+                        result.value = (unsigned)op - (unsigned)DW_OP::reg0;
+                    }
+                    else if (op >= DW_OP::breg0 && op <= DW_OP::breg31)
+                    {
+                        tmp1.u = (unsigned)op - (unsigned)DW_OP::breg0;
+                        tmp2.s = cur.sleb128();
+                        stack.push_back((int64_t)ctx->reg(tmp1.u) + tmp2.s);
+                    }
+                    else
                         throw expr_error("bad operation " + to_string(op));
                 }
-#pragma GCC diagnostic pop
 #undef CHECK
 #undef CHECKN
         }

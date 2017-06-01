@@ -70,9 +70,17 @@ swizzle(T v, byte_order from, byte_order to)
                 return (T)(((x&0xFF) << 8) | (x >> 8));
         }
         case 4:
-                return (T)__builtin_bswap32((std::uint32_t)v);
+#ifdef _MSC_VER
+                return (T)_byteswap_ulong((std::uint32_t)v);
+#else
+				return (T)__builtin_bswap32((std::uint32_t)v);
+#endif
         case 8:
-                return (T)__builtin_bswap64((std::uint64_t)v);
+#ifdef _MSC_VER
+                return (T)_byteswap_uint64((std::uint64_t)v);
+#else
+				return (T)__builtin_bswap64((std::uint64_t)v);
+#endif
         }
 }
 

@@ -337,8 +337,6 @@ line_table::iterator::step(cursor *cur)
                 // opcodes even if they're from a later version of the
                 // standard than the line table header claims.
                 uint64_t uarg;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic warning "-Wswitch-enum"
                 switch ((DW_LNS)opcode) {
                 case DW_LNS::copy:
                         entry = regs;
@@ -416,18 +414,17 @@ line_table::iterator::step(cursor *cur)
                         // XXX Only DWARF4
                         regs.discriminator = cur->uleb128();
                         break;
-                case DW_LNE::lo_user...DW_LNE::hi_user:
+                /*case DW_LNE::lo_user...DW_LNE::hi_user:
                         // XXX Vendor extensions
                         throw runtime_error("vendor line number opcode " +
                                             to_string((DW_LNE)opcode) +
-                                            " not implemented");
+                                            " not implemented");*/
                 default:
                         // XXX Prior to DWARF4, any opcode number
                         // could be a vendor extension
                         throw format_error("unknown line number opcode " +
                                            to_string((DW_LNE)opcode));
                 }
-#pragma GCC diagnostic pop
                 if (cur->get_section_offset() > end)
                         throw format_error("extended line number opcode exceeded its size");
                 cur += end - cur->get_section_offset();
