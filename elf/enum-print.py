@@ -6,7 +6,13 @@ import sys, re
 from optparse import OptionParser
 
 def read_toks():
-    data = sys.stdin.read()
+
+    data = None
+    if options.input != "-":
+        data = open(options.input, "r").read()
+    else:
+        data = sys.stdin.read()
+   
     while data:
         data = data.lstrip()
         if data.startswith("//") or data.startswith("#"):
@@ -156,6 +162,8 @@ parser.add_option("--no-type", dest="no_type", action="store_true",
                   help="omit type")
 parser.add_option("--mask", dest="mask", action="append",
                   help="treat TYPE as a bit-mask", metavar="TYPE", default=[])
+parser.add_option("--input", dest="input", action="store",
+                  help="input file, if not provided uses stdin", default="-")
 (options, args) = parser.parse_args()
 if args:
     parser.error("expected 0 arguments")

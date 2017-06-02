@@ -8,7 +8,6 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 #include <fcntl.h>
 
 using namespace std;
@@ -143,6 +142,8 @@ public:
                 return (const char*)base + offset;
         }
 };
+
+#endif
 
 std::shared_ptr<loader>
 create_mmap_loader(int fd)
