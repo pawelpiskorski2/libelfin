@@ -1,0 +1,7 @@
+Debug
+Release
+x96
+*.db
+*.user
+*.opendb
+.vs

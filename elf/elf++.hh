@@ -21,6 +21,7 @@ class section;
 class strtab;
 class symtab;
 class segment;
+
 // XXX Audit for binary compatibility
 
 // XXX Segments, other section types
@@ -37,6 +38,12 @@ public:
                 : std::runtime_error(what_arg) { }
 };
 
+#if _MSC_VER
+#define DllExport   __declspec( dllexport )
+#else
+#define DllExport
+#endif
+
 /**
  * An ELF file.
  *
@@ -50,7 +57,7 @@ public:
  * Keeping any object that can return such a pointer live is
  * sufficieint to keep the loader live.
  */
-class elf
+class DllExport elf
 {
 public:
         /**
