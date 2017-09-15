@@ -1,3 +1,4 @@
+# pylint: skip-file
 import subprocess
 import sys
 import datetime
